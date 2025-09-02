@@ -35,11 +35,18 @@ const getStudentById = async (req, res, next) => {
 
 const getAllStudents = async (req, res, next) => {
     const year = parseInt(req.query.year);
+    const branch = req.query.branch;
+    const section = req.query.section;
+
+    // Build optional filters
+    const filter = {};
+    if (branch) filter.branch = branch;
+    if (section) filter.section = section;
 
     try {
         if (year) {
             const Student = getStudentModelByYear(year);
-            const students = await Student.find().select('-password');
+            const students = await Student.find(filter).select('-password');
             return res.json(students);
         }
 
@@ -53,7 +60,7 @@ const getAllStudents = async (req, res, next) => {
         for (const collectionName of yearCollections) {
             const yearFromCollection = parseInt(collectionName.split('_')[0]);
             const StudentModel = getStudentModelByYear(yearFromCollection);
-            const students = await StudentModel.find().select('-password');
+            const students = await StudentModel.find(filter).select('-password');
             allStudents.push(...students);
         }
 
