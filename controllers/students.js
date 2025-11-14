@@ -118,6 +118,86 @@ const assignTestsToStudent = async (req, res, next) => {
     }
 };
 
+const assignTestToByCriteria = async (req, res, next) => {
+    const { testId } = req.params;
+    const { year, branch, section } = req.body;
+
+    if (!testId || !year) {
+        return res.status(400).json({ message: 'testId and year are required' });
+    }
+
+    try {
+        // Check if test exists and is live
+        const test = await Test.findById(testId);
+        if (!test) {
+            return res.status(404).json({ message: 'Test not found' });
+        }
+        
+        if (test.status !== 'live') {
+            return res.status(400).json({ message: 'Cannot assign offline tests to students. Please make the test live first.' });
+        }
+
+        const Student = getStudentModelByYear(year);
+
+        // Build filter criteria
+        const filterCriteria = { 'assignedTests.testId': { $ne: testId } };
+        
+        if (branch) {
+            filterCriteria.branch = branch;
+        }
+        
+        if (section) {
+            filterCriteria.section = section;
+        }
+
+        // Find students matching criteria first to get count and info
+        const matchingStudents = await Student.find(filterCriteria).select('name rollno branch section');
+        
+        if (matchingStudents.length === 0) {
+            return res.status(200).json({
+                message: 'No students found matching the criteria or all matching students already have this test assigned',
+                modifiedCount: 0,
+                criteria: { year, branch: branch || 'All branches', section: section || 'All sections' }
+            });
+        }
+
+        // Assign test to matching students
+        const updateResult = await Student.updateMany(
+            filterCriteria,
+            {
+                $push: {
+                    assignedTests: {
+                        testId,
+                        status: 'pending',
+                        marks: {},
+                        submittedAt: null
+                    }
+                }
+            }
+        );
+
+        res.json({
+            message: `Test assigned to ${updateResult.modifiedCount} students`,
+            modifiedCount: updateResult.modifiedCount,
+            criteria: { 
+                year, 
+                branch: branch || 'All branches', 
+                section: section || 'All sections' 
+            },
+            assignedStudents: matchingStudents.map(student => ({
+                name: student.name,
+                rollno: student.rollno,
+                branch: student.branch,
+                section: student.section
+            }))
+        });
+    } catch (error) {
+        console.error('Error assigning test by criteria:', error);
+        res.status(500).json({ message: 'Failed to assign test by criteria', error: error.message });
+        next(error);
+    }
+};
+
 const submitTestMarks = async (req, res, next) => {
     const { studentId, testId, year, marks } = req.body;
 
@@ -392,4 +472,4 @@ const getAllStudentRanksByTest = async (req, res, next) => {
     }
 };
 
-module.exports = { getStudentById, getAllStudents, assignTestsToStudent, submitTestMarks, startTest, getStudentRankByTest, getAllStudentRanksByTest };
+module.exports = { getStudentById, getAllStudents, assignTestsToStudent, assignTestToByCriteria, submitTestMarks, startTest, getStudentRankByTest, getAllStudentRanksByTest };

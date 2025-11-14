@@ -18,7 +18,7 @@ const {
   getLiveTests,
   getAllTestsWithStatus
 } = require('../controllers/testController');
-const { assignTestsToStudent, submitTestMarks, startTest } = require('../controllers/students');
+const { assignTestsToStudent, assignTestToByCriteria, submitTestMarks, startTest } = require('../controllers/students');
 // Admin: Create/Update test and its categories with questions
 router.post('/create', createTest);
 
@@ -69,6 +69,9 @@ router.post('/getStudentsRanks', getStudentsRanks);
 
 // POST /tests/:testId/assign
 router.post('/:testId/assign', assignTestsToStudent);
+
+// POST /tests/:testId/assign-by-criteria - Assign test to students by year, branch, section criteria
+router.post('/:testId/assign-by-criteria', assignTestToByCriteria);
 
 // POST /tests/:testId/submit
 router.post('/:testId/start', startTest);
