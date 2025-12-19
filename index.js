@@ -39,6 +39,7 @@ app.get("/", (req, res) => {
 
 // Start Server
 const PORT = process.env.PORT || 3000;
+const HOST = '117.250.212.182';
 connectDB().then(() => {
   // Create default admin accounts after DB connection
   createDefaultAdmins();
@@ -46,5 +47,5 @@ connectDB().then(() => {
   // Initialize the exam scheduler
   initializeExamScheduler();
   
-  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  app.listen(PORT, HOST, () => console.log(`Server running on http://${HOST}:${PORT}`));
 });
